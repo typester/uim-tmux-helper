@@ -6,6 +6,7 @@ import (
 	"net"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"regexp"
 )
 
@@ -17,7 +18,8 @@ type UimHelper struct {
 
 func NewUimHelper() *UimHelper {
 	helper := new(UimHelper)
-	helper.socketPath = os.Getenv("HOME") + "/.uim.d/socket/uim-helper"
+	helper.socketPath =
+		filepath.Join(os.Getenv("HOME"), "/.uim.d/socket/uim-helper")
 	helper.readChannel = make(chan string)
 
 	con, err := net.Dial("unix", helper.socketPath)
