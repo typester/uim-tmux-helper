@@ -1,0 +1,10 @@
+show uim-fep status to tmux left status.
+
+** before
+
+[[https://raw.github.com/typester/uim-tmux-helper/master/before.png]]
+
+** after
+
+[[https://raw.github.com/typester/uim-tmux-helper/master/after.png]]
+
