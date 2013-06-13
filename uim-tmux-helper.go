@@ -2,71 +2,38 @@ package main
 
 import (
 	"bufio"
-	"bytes"
-	"net"
-	"os"
 	"os/exec"
-	"path/filepath"
 	"regexp"
 )
 
-type UimHelper struct {
-	socketPath  string
-	readChannel chan string
-	reader      *bufio.Reader
-}
-
-func NewUimHelper() *UimHelper {
-	helper := new(UimHelper)
-	helper.socketPath =
-		filepath.Join(os.Getenv("HOME"), "/.uim.d/socket/uim-helper")
-	helper.readChannel = make(chan string)
-
-	con, err := net.Dial("unix", helper.socketPath)
-	if nil != err {
+func main() {
+	backtick := exec.Command("uim-fep-tick")
+	stdout, err := backtick.StdoutPipe()
+	if err != nil {
+		panic(err)
+	}
+	if err := backtick.Start(); err != nil {
 		panic(err)
 	}
 
-	helper.reader = bufio.NewReader(con)
+	reader := bufio.NewReader(stdout)
 
-	return helper
-}
-
-func (helper *UimHelper) doRead() {
-	var buf bytes.Buffer
-	sep := []byte{'\n'}
+	mode_re := regexp.MustCompile("Sk(.)")
 
 	for {
-		line, err := helper.reader.ReadBytes('\n')
-		if nil != err {
+		line, err := reader.ReadString('\n')
+		if err != nil {
 			panic(err)
 		}
-		buf.Write(line)
 
-		if bytes.Equal(line, sep) {
-			helper.readChannel <- buf.String()
-			break
+		matched := mode_re.FindStringSubmatch(line)
+
+		if len(matched) == 2 {
+			line = "[" + matched[1] + "]"
 		}
-	}
-}
 
-func (helper *UimHelper) ReadEvent() string {
-	go helper.doRead()
-	return <-helper.readChannel
-}
-
-func main() {
-	uim := NewUimHelper()
-	re := regexp.MustCompile("branch\\s+\\S+\\s+(\\S+)")
-
-	for {
-		event := uim.ReadEvent()
-		matched := re.FindAllStringSubmatch(event, 3)
-		mode := matched[1][1]
-
-		cmd := exec.Command("tmux", "set", "status-left", "["+mode+"]")
-		err := cmd.Run()
-		if nil != err {
+		err = exec.Command("tmux", "set", "status-left", line).Run()
+		if err != nil {
 			panic(err)
 		}
 	}
